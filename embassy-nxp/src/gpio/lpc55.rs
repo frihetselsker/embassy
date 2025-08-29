@@ -124,6 +124,7 @@ impl<'d> Input<'d> {
 
     /// Get the current input level of the pin.
     pub fn read(&self) -> Level {
+        //let valuee = GPIO.pin(self.pin.pin_bank() as usize).read().port();
         let bits = gpio_reg().pin[self.pin.pin_bank() as usize].read().bits();
         if bits & self.pin.bit() != 0 {
             Level::High
