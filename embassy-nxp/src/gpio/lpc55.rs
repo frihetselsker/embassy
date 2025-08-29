@@ -1,12 +1,24 @@
+use core::any::Any;
+use core::ops::DerefMut;
+
 use embassy_hal_internal::{impl_peripheral, PeripheralType};
+use nxp_pac::{GPIO, IOCON};
 
 use crate::{peripherals, Peri};
 
+use crate::pac::SYSCON;
+
 pub(crate) fn init() {
     // Enable clocks for GPIO, PINT, and IOCON
-    syscon_reg()
-        .ahbclkctrl0
-        .modify(|_, w| w.gpio0().enable().gpio1().enable().mux().enable().iocon().enable());
+    // syscon_reg()
+    //     .ahbclkctrl0
+    //     .modify(|_, w| w.gpio0().enable().gpio1().enable().mux().enable().iocon().enable());
+    SYSCON.ahbclkctrl0().write(|w| {
+        w.set_gpio0(true);
+        w.set_gpio1(true);
+        w.set_mux(true);
+        w.set_iocon(true);
+    });
     info!("GPIO initialized");
 }
 
@@ -191,6 +203,7 @@ impl<'d> Flex<'d> {
         match_iocon!(register, iocon_reg(), self.pin_bank(), self.pin_number(), {
             register.modify(|_, w| w.digimode().digital());
         });
+        //IOCON.pio0_0().modify(|w| w.set_digimode(nxp_pac::iocon::vals::Pio00Digimode::DIGITAL));
     }
 
     /// Set the pin in output mode. This implies setting the pin to digital mode, which this
@@ -202,6 +215,8 @@ impl<'d> Flex<'d> {
 
     pub fn set_as_input(&mut self) {
         self.set_as_digital();
+        GPIO.mpin();
+        GPIO.dir(self.pin.pin_bank() as usize).;
         gpio_reg().dirclr[self.pin.pin_bank() as usize].write(|w| unsafe { w.dirclrp().bits(self.bit()) })
     }
 }
@@ -269,7 +284,7 @@ impl SealedPin for AnyPin {
 /// by a single thread at a time. Read/Write operations on a single registers are NOT atomic. You
 /// must ensure that the GPIO registers are not accessed concurrently by multiple threads.
 pub(crate) fn gpio_reg() -> &'static lpc55_pac::gpio::RegisterBlock {
-    unsafe { &*lpc55_pac::GPIO::ptr() }
+    unsafe { &*lpc55_pac::GPIO::ptr() };
 }
 
 /// Get the IOCON register block.
